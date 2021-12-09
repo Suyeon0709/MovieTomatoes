@@ -10,8 +10,10 @@
 # 일지: 2021.11.09
 
 import math
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
+import tensorflow as tf
 import webcrawl.WebCrawlService as wcs
 import model.MongoDAO as mongo
 from konlpy.tag import Okt
@@ -54,7 +56,7 @@ def read_data(file_name):
             words_data.append(line)
     return words_data
 
-selected_words = read_data('./ai/selectword.txt')
+selected_words = read_data('./Ai/selecword.txt')
 
 # 예측할 데이터의 전처리를 진행할 메서드
 okt = Okt()
@@ -69,14 +71,15 @@ def term_frequency(doc):
 
 
 # 학습된 인공지능 모델(AI) 불러오기
-model = tf.keras.medels.load_model('.ai/my_model.h5')
+model = tf.keras.models.load_model('.Ai/my_model.h5')
 print('model(type):',type(model))
 
 # 인공지능 모델로 긍부정 예측하는 메서드
-def predict_pcs_neg(review):
+pos_count = 0
+def predict_pos_neg(review):
     token = tokenize(review)
     tf = term_frequency(token)
-    data = np.expand_dims(np.asrray(tf).astype('float32'), acis=0)
+    data = np.expand_dims(np.asrray(tf).astype('float32'), axis=0)
     predict_score = float(model.predict(data))
 
     if (predict_score > 0.5):
@@ -84,11 +87,23 @@ def predict_pcs_neg(review):
     else:
         print('[{}] => {:.2f}% 확률로 부정리뷰 예상'.format(review, (1 - predict_score) * 100))
 
-predict_pos_neg(review_list[0][1])
 
 
 #################
 # 3.분석결과 시각화#
 ########### ######
-
-
+def predict_result():
+    for one in review_list:
+        predict_pos_neg(one[1])
+        
+    aCount = len(review_list) # 리뷰 전체 개수
+    pCount = pos_count
+    pos_pct = (pCount * 100) / aCount
+    neg_pct = 100 - pos_pct
+        
+    print('=================================================================')
+    print('== ({}) 리뷰 {}개를 감성분석한 결과'.format(review_list[0][0], aCount))
+    print('== 긍정적인 의견{:.2f)% / 부정적인 의견(:.2f}%'.format(pos_pct, neg_pct))
+    print('=================================================================')
+        
+predict_result()
